@@ -81,7 +81,7 @@ app.get("/api/health", (req, res) => {
 // ✅ Serve frontend in production
 if (process.env.NODE_ENV === "development") {
   app.use(express.static(path.join(process.cwd(), "../webinar-frontend/dist")));
-  app.get("*", (req, res) =>
+  app.get("/*", (req, res) =>
     res.sendFile(path.join(process.cwd(), "../webinar-frontend/dist", "index.html"))
   );
 }
