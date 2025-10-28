@@ -3,17 +3,35 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from "url";
+
+// Import routes
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import settingsRoutes from "./routes/settings.routes.js";
-import Settings from "./models/settings.model.js";
-import User from "./models/userModel.js"; // ✅ ADD THIS to use User data
 import courseBookingRoutes from "./routes/courseBookingRoutes.js";
 
+// Import models
+import Settings from "./models/settings.model.js";
+import User from "./models/userModel.js";
+
+// Environment setup
 dotenv.config();
 
 const app = express();
-app.use(cors());
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ✅ CORS setup (allow all origins and preflight requests)
+app.use(
+  cors({
+    origin: "*", // or restrict to your frontend domain
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+app.options("*", cors()); // ✅ Handle all preflight (OPTIONS) requests
+
 app.use(express.json());
 
 // ✅ MongoDB connection
@@ -22,7 +40,7 @@ mongoose
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ Routes
+// ✅ API Routes
 app.use("/api", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/settings", settingsRoutes);
@@ -78,13 +96,14 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "Server is healthy 🚀" });
 });
 
-// ✅ Serve frontend in production
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(process.cwd(), "../webinar-frontend/dist")));
-  app.get("*", (req, res) =>
-    res.sendFile(path.join(process.cwd(), "../webinar-frontend/dist", "index.html"))
-  );
-}
+// ✅ Serve frontend for both development and production
+const frontendPath = path.join(process.cwd(), "../webinar-frontend/dist");
+app.use(express.static(frontendPath));
+
+// ✅ Express 5-compatible wildcard route for SPA
+app.get("/:path(*)", (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
+});
 
 // ✅ Start server
 const PORT = process.env.PORT || 4000;
