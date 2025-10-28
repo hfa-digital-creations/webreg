@@ -3,26 +3,40 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from "url";
+
+// Import routes
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import settingsRoutes from "./routes/settings.routes.js";
-import Settings from "./models/settings.model.js";
-import User from "./models/userModel.js"; // ✅ ADD THIS to use User data
 import courseBookingRoutes from "./routes/courseBookingRoutes.js";
 
+// Import models
+import Settings from "./models/settings.model.js";
+import User from "./models/userModel.js";
+
+// Initialize environment variables
 dotenv.config();
 
+// Express app
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// __dirname workaround for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // ✅ MongoDB connection
 mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ Routes
+// ✅ API Routes
 app.use("/api", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/settings", settingsRoutes);
@@ -78,14 +92,15 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "Server is healthy 🚀" });
 });
 
-// ✅ Serve frontend in production
-if (process.env.NODE_ENV === "development") {
-  app.use(express.static(path.join(process.cwd(), "../webinar-frontend/dist")));
-  app.get("/*", (req, res) =>
-    res.sendFile(path.join(process.cwd(), "../webinar-frontend/dist", "index.html"))
-  );
-}
+// ✅ Serve frontend (for both development and production)
+const frontendPath = path.join(__dirname, "../webinar-frontend/dist");
+app.use(express.static(frontendPath));
 
-// ✅ Start server
+// ✅ Catch-all for React/Vite routes (Express 5 compatible)
+app.get("/:path(*)", (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
+});
+
+// ✅ Start the server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
